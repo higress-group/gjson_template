@@ -15,6 +15,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"github.com/Masterminds/sprig/v3"
 	"github.com/tidwall/gjson"
 )
 
@@ -39,7 +40,7 @@ type FuncMap map[string]any
 // more when this isn't called. See golang.org/issue/36021.
 // TODO: revert this back to a global map once golang.org/issue/2559 is fixed.
 func builtins() FuncMap {
-	return FuncMap{
+	f := FuncMap{
 		"and":      and,
 		"call":     emptyCall,
 		"html":     HTMLEscaper,
@@ -63,6 +64,13 @@ func builtins() FuncMap {
 		"lt": lt, // <
 		"ne": ne, // !=
 	}
+	extra := sprig.TxtFuncMap()
+	delete(extra, "env")
+	delete(extra, "expandenv")
+	for k, v := range extra {
+		f[k] = v
+	}
+	return f
 }
 
 // gjsonFunc is a function that takes a gjson path and returns the value at that path

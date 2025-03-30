@@ -114,7 +114,7 @@ Follow on: {{if .blog.author.social.twitter}}[Twitter](https://twitter.com/{{.bl
 ## Table of Contents
 
 {{range $index, $section := .blog.content.sections}}
-{{$num := add $index 1}}. [{{$section.title}}](#{{$section.title}})
+{{add $index 1}}. [{{$section.title}}](#{{$section.title}})
 {{end}}
 
 {{range $index, $section := .blog.content.sections}}
@@ -207,23 +207,8 @@ This article has {{len .blog.comments}} comments!
 **Wildcard section search**: {{gjson "blog.content.sections.#(title%\"*Basics\").content"}}
 `
 
-var customFuncs = template.FuncMap{
-	"add": func(a, b int) int {
-		return a + b
-	},
-	"lower": func(s string) string {
-		return string(bytes.ToLower([]byte(s)))
-	},
-	"replace": func(s, old, new string) string {
-		return string(bytes.ReplaceAll([]byte(s), []byte(old), []byte(new)))
-	},
-	"trimPrefix": func(s, prefix string) string {
-		return string(bytes.TrimPrefix([]byte(s), []byte(prefix)))
-	},
-}
-
 func main() {
-	tmpl, err := template.New("markdown").Funcs(customFuncs).Parse(markdownTemplate)
+	tmpl, err := template.New("markdown").Parse(markdownTemplate)
 	if err != nil {
 		log.Fatalf("Error parsing template: %v", err)
 	}

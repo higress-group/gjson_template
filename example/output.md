@@ -22,11 +22,11 @@ This article explores the power of combining JSON with templates.
 ## Table of Contents
 
 
-. [JSON Basics](#JSON Basics)
+1. [JSON Basics](#JSON Basics)
 
-. [Templates in Go](#Templates in Go)
+2. [Templates in Go](#Templates in Go)
 
-. [Advanced GJSON Features](#Advanced GJSON Features)
+3. [Advanced GJSON Features](#Advanced GJSON Features)
 
 
 
