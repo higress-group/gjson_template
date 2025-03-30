@@ -114,7 +114,7 @@ Follow on: {{if .blog.author.social.twitter}}[Twitter](https://twitter.com/{{.bl
 ## Table of Contents
 
 {{range $index, $section := .blog.content.sections}}
-{{add $index 1}}. [{{$section.title}}](#{{$section.title}})
+{{add $index 1}}. [{{$section.title}}](#{{lower $section.title | replace " " "-"}})
 {{end}}
 
 {{range $index, $section := .blog.content.sections}}
@@ -135,12 +135,6 @@ Follow on: {{if .blog.author.social.twitter}}[Twitter](https://twitter.com/{{.bl
 > **Note**: This section is particularly important!
 {{end}}
 
-{{end}}
-
-## Tags
-
-{{range $index, $tag := .blog.tags}}
-{{if $index}}, {{end}}#{{$tag}}
 {{end}}
 
 ## Comments ({{len .blog.comments}})

@@ -1059,6 +1059,32 @@ func (s *state) evalFunction(dot gjson.Result, node *parse.IdentifierNode, cmd p
 			reflectArgs = append(reflectArgs, reflectArg)
 		}
 
+		// If there's a final argument from the pipeline, add it to the arguments
+		if final.Exists() {
+			var finalArg reflect.Value
+			switch final.Type {
+			case gjson.Null:
+				finalArg = reflect.Zero(reflect.TypeOf((*any)(nil)).Elem())
+			case gjson.False, gjson.True:
+				finalArg = reflect.ValueOf(final.Bool())
+			case gjson.Number:
+				if final.Num == float64(int64(final.Num)) {
+					finalArg = reflect.ValueOf(int(final.Int()))
+				} else {
+					finalArg = reflect.ValueOf(final.Float())
+				}
+			case gjson.String:
+				finalArg = reflect.ValueOf(final.String())
+			case gjson.JSON:
+				if final.IsArray() || final.IsObject() {
+					finalArg = reflect.ValueOf(final.Raw)
+				} else {
+					finalArg = reflect.ValueOf(final.Value())
+				}
+			}
+			reflectArgs = append(reflectArgs, finalArg)
+		}
+
 		// Call the function
 		result, err := safeCall(fn, reflectArgs)
 		if err != nil {

@@ -22,11 +22,11 @@ This article explores the power of combining JSON with templates.
 ## Table of Contents
 
 
-1. [JSON Basics](#JSON Basics)
+1. [JSON Basics](#json-basics)
 
-2. [Templates in Go](#Templates in Go)
+2. [Templates in Go](#templates-in-go)
 
-3. [Advanced GJSON Features](#Advanced GJSON Features)
+3. [Advanced GJSON Features](#advanced-gjson-features)
 
 
 
@@ -88,18 +88,6 @@ result := gjson.Get(json, "users.#(name=John).age")
 > **Note**: This section is particularly important!
 
 
-
-
-## Tags
-
-
-#json
-
-, #templates
-
-, #golang
-
-, #markdown
 
 
 ## Comments (3)
