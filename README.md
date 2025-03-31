@@ -6,7 +6,7 @@ A powerful template engine based on Go's standard template library, enhanced wit
 
 GJSON Template is a fork of Go's standard template package that replaces the reflection-based value lookup mechanism with [GJSON](https://github.com/tidwall/gjson) path syntax. This provides several advantages:
 
-- **Performance**: Eliminates the overhead of reflection when working with JSON data
+- **Performance**: Eliminates the overhead of reflection when working with JSON data by avoiding unmarshal operations, reducing small object allocations and GC pressure
 - **Flexibility**: Leverages GJSON's powerful path syntax for complex JSON queries
 - **Simplicity**: Maintains the familiar Go template syntax while adding powerful JSON capabilities
 
@@ -149,6 +149,40 @@ GJSON Template supports the full GJSON path syntax. Here are some key features:
 - **Escape characters**: `path.with\.dot`
 
 For a complete reference of GJSON path syntax, see the [GJSON documentation](https://github.com/tidwall/gjson#path-syntax).
+
+## Built-in Functions with Sprig
+
+GJSON Template comes with all of [Sprig](https://github.com/Masterminds/sprig)'s functions built-in, providing a rich set of over 70 template functions for string manipulation, math operations, date formatting, list processing, and more. This makes GJSON Template functionally equivalent to Helm's template capabilities.
+
+Some commonly used Sprig functions include:
+
+- **String manipulation**: `trim`, `upper`, `lower`, `replace`, `plural`, `nospace`
+- **Math operations**: `add`, `sub`, `mul`, `div`, `max`, `min`
+- **Date formatting**: `now`, `date`, `dateInZone`, `dateModify`
+- **List operations**: `list`, `first`, `last`, `uniq`, `sortAlpha`
+- **Dictionary operations**: `dict`, `get`, `set`, `hasKey`, `pluck`
+- **Flow control**: `ternary`, `default`, `empty`, `coalesce`
+- **Type conversion**: `toString`, `toJson`, `toPrettyJson`, `toRawJson`
+- **Encoding/decoding**: `b64enc`, `b64dec`, `urlquery`, `urlqueryescape`
+- **UUID generation**: `uuidv4`
+
+Example usage:
+
+```go
+// String manipulation
+{{lower .title | replace " " "-"}}  // Convert to lowercase and replace spaces with hyphens
+
+// Math operations
+{{add 5 .count}}  // Add 5 to the count value
+
+// Date formatting
+{{now | date "2006-01-02"}}  // Format current date as YYYY-MM-DD
+
+// List operations
+{{list 1 2 3 | join ","}}  // Create a list and join with commas
+```
+
+For a complete reference of all available functions, see the [Helm documentation on functions](https://helm.sh/docs/chart_template_guide/function_list/), as GJSON Template includes the same function set.
 
 ## AI Prompt for Template Generation
 
