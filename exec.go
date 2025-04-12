@@ -1031,7 +1031,11 @@ func (s *state) evalFunction(dot gjson.Result, node *parse.IdentifierNode, cmd p
 	fn, _, found := findFunction(name, s.tmpl)
 	if found && name != "printf" && name != "sprintf" {
 		// Convert gjson.Result arguments to reflect.Value
-		reflectArgs := make([]reflect.Value, 0, len(args)-1)
+		capacity := 0
+		if len(args) > 1 {
+			capacity = len(args) - 1
+		}
+		reflectArgs := make([]reflect.Value, 0, capacity)
 		for i := 1; i < len(args); i++ {
 			arg := s.evalArg(dot, args[i])
 			var reflectArg reflect.Value
