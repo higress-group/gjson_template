@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/url"
+	"os"
 	"reflect"
 	"runtime"
 	"strconv"
@@ -173,13 +174,17 @@ func errRecover(errp *error) {
 	if e != nil {
 		switch err := e.(type) {
 		case runtime.Error:
-			panic(e)
+			// Log runtime errors instead of panicking
+			fmt.Fprintf(os.Stderr, "Runtime error: %v\n", e)
+			*errp = fmt.Errorf("runtime error: %v", e)
 		case writeError:
 			*errp = err.Err // Strip the wrapper.
 		case ExecError:
 			*errp = err // Keep the wrapper.
 		default:
-			panic(e)
+			// Log unknown errors instead of panicking
+			fmt.Fprintf(os.Stderr, "Template execution error: %v\n", e)
+			*errp = fmt.Errorf("template execution error: %v", e)
 		}
 	}
 }
