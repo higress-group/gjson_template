@@ -964,7 +964,7 @@ func (s *state) evalFunction(dot gjson.Result, node *parse.IdentifierNode, cmd p
 		format := formatArg.String()
 
 		// Convert remaining arguments to Go values
-		goArgs := make([]interface{}, 0, len(args)-2)
+		goArgs := make([]interface{}, 0)
 		for i := 2; i < len(args); i++ {
 			arg := s.evalArg(dot, args[i])
 
@@ -1031,11 +1031,7 @@ func (s *state) evalFunction(dot gjson.Result, node *parse.IdentifierNode, cmd p
 	fn, _, found := findFunction(name, s.tmpl)
 	if found && name != "printf" && name != "sprintf" {
 		// Convert gjson.Result arguments to reflect.Value
-		capacity := 0
-		if len(args) > 1 {
-			capacity = len(args) - 1
-		}
-		reflectArgs := make([]reflect.Value, 0, capacity)
+		reflectArgs := make([]reflect.Value, 0)
 		for i := 1; i < len(args); i++ {
 			arg := s.evalArg(dot, args[i])
 			var reflectArg reflect.Value

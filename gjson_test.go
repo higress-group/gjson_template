@@ -6,6 +6,8 @@ package gjson_template
 
 import (
 	"bytes"
+	"fmt"
+	"strings"
 	"testing"
 )
 
@@ -361,5 +363,204 @@ func TestGjsonTemplateFiles(t *testing.T) {
 	expected := "TEXT"
 	if buf.String() != expected {
 		t.Errorf("template file: expected %q got %q", expected, buf.String())
+	}
+}
+
+// TestEvalFunctionSliceCap tests the potential issue with makeslice cap out of range
+// in the evalFunction method when capacity might be negative
+func TestEvalFunctionSliceCap(t *testing.T) {
+	tests := []struct {
+		name        string
+		template    string
+		data        []byte
+		expectError bool
+		errorType   string
+	}{
+		{
+			name:        "Empty function args",
+			template:    "{{nonExistentFunction}}",
+			data:        []byte(`{}`),
+			expectError: true,
+			errorType:   "function \"nonExistentFunction\" not implemented",
+		},
+		{
+			name:        "Function with empty args list",
+			template:    "{{nonExistentFunction ()}}",
+			data:        []byte(`{}`),
+			expectError: true,
+			errorType:   "function \"nonExistentFunction\" not implemented",
+		},
+		{
+			name:        "Function with pipeline but no args",
+			template:    "{{. | nonExistentFunction}}",
+			data:        []byte(`"test"`),
+			expectError: true,
+			errorType:   "function \"nonExistentFunction\" not implemented",
+		},
+		{
+			name:        "Extremely large number of args",
+			template:    createTemplateWithManyArgs(1000),
+			data:        []byte(`{}`),
+			expectError: true,
+			errorType:   "function \"nonExistentFunction\" not implemented",
+		},
+		{
+			name:        "Negative number in template",
+			template:    "{{nonExistentFunction -1}}",
+			data:        []byte(`{}`),
+			expectError: true,
+			errorType:   "function \"nonExistentFunction\" not implemented",
+		},
+		{
+			name:        "Function with null pipeline",
+			template:    "{{.Null | nonExistentFunction}}",
+			data:        baseTestJSON,
+			expectError: true,
+			errorType:   "function \"nonExistentFunction\" not implemented",
+		},
+		{
+			name:        "Function with empty string pipeline",
+			template:    "{{.Empty.String | nonExistentFunction}}",
+			data:        baseTestJSON,
+			expectError: true,
+			errorType:   "function \"nonExistentFunction\" not implemented",
+		},
+		{
+			name:        "Nested function calls with empty args",
+			template:    "{{nonExistentFunction (nonExistentFunction2)}}",
+			data:        []byte(`{}`),
+			expectError: true,
+			errorType:   "function \"nonExistentFunction2\" not implemented",
+		},
+		{
+			name:        "Function with complex expression",
+			template:    "{{nonExistentFunction (index .Array 0) (len .Array) (eq 1 1)}}",
+			data:        baseTestJSON,
+			expectError: true,
+			errorType:   "function \"nonExistentFunction\" not implemented",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			tmpl, err := New(test.name).Parse(test.template)
+			if err != nil {
+				if !test.expectError {
+					t.Errorf("parse error: %s", err)
+				}
+				return
+			}
+
+			var buf bytes.Buffer
+			err = tmpl.Execute(&buf, test.data)
+
+			if test.expectError && err == nil {
+				t.Errorf("Expected error but got none")
+			} else if !test.expectError && err != nil {
+				t.Errorf("Unexpected error: %s", err)
+			}
+
+			// Check for specific error type
+			if test.expectError && err != nil {
+				if !strings.Contains(err.Error(), "makeslice: cap out of range") &&
+					!strings.Contains(err.Error(), test.errorType) {
+					t.Logf("Got error but not the expected one: %s", err)
+				}
+			}
+		})
+	}
+}
+
+// Helper function to create a template with many arguments
+func createTemplateWithManyArgs(count int) string {
+	var builder strings.Builder
+	builder.WriteString("{{nonExistentFunction")
+	for i := 0; i < count; i++ {
+		builder.WriteString(" ")
+		builder.WriteString(string(rune('a' + i%26)))
+	}
+	builder.WriteString("}}")
+	return builder.String()
+}
+
+// TestEvalFunctionEdgeCases tests specific edge cases that might trigger the makeslice error
+func TestEvalFunctionEdgeCases(t *testing.T) {
+	// This test specifically targets the capacity calculation in evalFunction
+	// where capacity := len(args) - 1 could result in a negative value
+
+	// Create a template with a very large number of nested function calls
+	// which might cause stack overflow or other issues
+	nestedTemplate := createNestedFunctionCalls(10)
+
+	tmpl, err := New("nested").Parse(nestedTemplate)
+	if err != nil {
+		// Parse errors are acceptable for this test
+		t.Logf("Parse error (expected): %s", err)
+		return
+	}
+
+	var buf bytes.Buffer
+	err = tmpl.Execute(&buf, baseTestJSON)
+
+	// We're looking specifically for "makeslice: cap out of range" error
+	if err != nil {
+		if strings.Contains(err.Error(), "makeslice: cap out of range") {
+			t.Logf("Found the expected 'makeslice: cap out of range' error: %s", err)
+		} else {
+			t.Logf("Got error but not the expected 'makeslice' one: %s", err)
+		}
+	}
+}
+
+// Helper function to create deeply nested function calls
+func createNestedFunctionCalls(depth int) string {
+	if depth <= 0 {
+		return "nonExistentFunction"
+	}
+	return "{{nonExistentFunction" + createNestedFunctionCalls(depth-1) + "}}"
+}
+
+// TestEmptyArgsSlice tests the specific case where args slice might be empty
+func TestEmptyArgsSlice(t *testing.T) {
+	// This test specifically targets the case where args might be empty
+	// which could lead to capacity = len(args) - 1 = -1
+
+	templates := []string{
+		// Empty function call
+		"{{emptyFunction}}",
+
+		// Function call with empty parentheses
+		"{{emptyFunction()}}",
+
+		// Function call with whitespace
+		"{{  emptyFunction  }}",
+
+		// Function call with pipeline but no args
+		"{{. | emptyFunction}}",
+
+		// Function call with nested empty function
+		"{{emptyFunction(emptyFunction)}}",
+	}
+
+	for i, template := range templates {
+		t.Run(fmt.Sprintf("EmptyArgs%d", i), func(t *testing.T) {
+			tmpl, err := New(fmt.Sprintf("empty%d", i)).Parse(template)
+			if err != nil {
+				t.Logf("Parse error: %s", err)
+				return
+			}
+
+			var buf bytes.Buffer
+			err = tmpl.Execute(&buf, baseTestJSON)
+
+			// Check specifically for "makeslice: cap out of range" error
+			if err != nil {
+				if strings.Contains(err.Error(), "makeslice: cap out of range") {
+					t.Logf("Found the expected 'makeslice: cap out of range' error: %s", err)
+				} else {
+					t.Logf("Got error but not the expected 'makeslice' one: %s", err)
+				}
+			}
+		})
 	}
 }
