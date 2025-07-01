@@ -49,7 +49,7 @@ func main() {
         Name: {{.name}}
         Age: {{.age}}
         City: {{.address.city}}
-        First Skill: {{.skills.0}}
+        First Skill: {{gjson "skills.0"}}
         All Skills: {{range .skills}}{{.}}, {{end}}
     `)
     
